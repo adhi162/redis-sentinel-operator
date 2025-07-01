@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,17 +26,84 @@ import (
 
 // RedisSentinelSpec defines the desired state of RedisSentinel.
 type RedisSentinelSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of RedisSentinel. Edit redissentinel_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Sentinel   SentinelSpec   `json:"sentinel"`
+	Redis      RedisSpec      `json:"redis"`
+	Failover   FailoverSpec   `json:"failover"`
+	Networking NetworkingSpec `json:"networking"`
+	Monitoring MonitoringSpec `json:"monitoring"`
 }
 
-// RedisSentinelStatus defines the observed state of RedisSentinel.
+type SentinelSpec struct {
+	Replicas  int32                         `json:"replicas"`
+	Quorum    int32                         `json:"quorum"`
+	Image     string                        `json:"image"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+type RedisPersistenceSpec struct {
+	Storage          string `json:"storage"`
+	StorageClassName string `json:"storageClassName,omitempty"`
+}
+
+type RedisSpec struct {
+	Replicas    int32                         `json:"replicas"`
+	Version     string                        `json:"version"`
+	Image       string                        `json:"image"`
+	Resources   *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Persistence RedisPersistenceSpec          `json:"persistence"`
+}
+
+type ReplicaPriorityRule struct {
+	Label  string `json:"label"`
+	Weight int    `json:"weight"`
+}
+
+type FailoverSpec struct {
+	MaxDelaySeconds int                   `json:"maxDelaySeconds"`
+	ReplicaPriority []ReplicaPriorityRule `json:"replicaPriority,omitempty"`
+}
+
+type NetworkingSpec struct {
+	AccessMode      string `json:"accessMode"`
+	DNSUpdatePolicy string `json:"dnsUpdatePolicy"`
+}
+
+type MonitoringSpec struct {
+	Prometheus  bool  `json:"prometheus"`
+	MetricsPort int32 `json:"metricsPort"`
+}
+
 type RedisSentinelStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Phase    string         `json:"phase,omitempty"`
+	Redis    RedisStatus    `json:"redis,omitempty"`
+	Sentinel SentinelStatus `json:"sentinel,omitempty"`
+	Failover FailoverStatus `json:"failover,omitempty"`
+
+	ObservedGeneration int64              `json:"observedGeneration,omitempty"`
+	Conditions         []metav1.Condition `json:"conditions,omitempty"`
+	LastUpdated        metav1.Time        `json:"lastUpdated,omitempty"`
+}
+
+type RedisStatus struct {
+	ReadyReplicas    int32  `json:"readyReplicas"`
+	CurrentMaster    string `json:"currentMaster"`
+	ReplicationLagOK bool   `json:"replicationLagOK"`
+	ConfigHash       string `json:"configHash"`
+}
+
+type SentinelStatus struct {
+	ReadyReplicas   int32  `json:"readyReplicas"`
+	QuorumAchieved  bool   `json:"quorumAchieved"`
+	Leader          string `json:"leader,omitempty"`
+	MonitoredMaster string `json:"monitoredMaster"`
+}
+
+type FailoverStatus struct {
+	LastFailoverTime     *metav1.Time `json:"lastFailoverTime,omitempty"`
+	LastFailoverReason   string       `json:"lastFailoverReason,omitempty"`
+	InProgress           bool         `json:"inProgress"`
+	ReplicaPromoted      string       `json:"replicaPromoted,omitempty"`
+	FailoverDurationSecs int          `json:"failoverDurationSecs,omitempty"`
 }
 
 // +kubebuilder:object:root=true

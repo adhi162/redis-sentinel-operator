@@ -1,9 +1,43 @@
 apiVersion: redis.redis.operator.io/v1
 kind: RedisSentinel
 metadata:
-  labels:
-    app.kubernetes.io/name: redis-sentinel-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: redissentinel-sample
+  name: example-redis-sentinel
 spec:
-  # TODO(user): Add fields here
+  sentinel:
+    replicas: 3
+    quorum: 2
+    image: bitnami/redis-sentinel:7.2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+  redis:
+    replicas: 3
+    version: "7.2"
+    image: bitnami/redis:7.2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+    persistence:
+      storage: 1Gi
+      storageClassName: standard
+  failover:
+    maxDelaySeconds: 15
+    replicaPriority:
+      - label: "zone=a"
+        weight: 100
+      - label: "zone=b"
+        weight: 80
+  networking:
+    accessMode: ClusterIP
+    dnsUpdatePolicy: Immediate
+  monitoring:
+    prometheus: true
+    metricsPort: 9121
